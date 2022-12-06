@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+</head>
+
+<style>
+    .select_user {
+        cursor: pointer;
+    }
+
+    .select_user:hover {
+        transition-timing-function: ease-out;
+        transition-duration: 0.3s;
+        font-size: 18px;
+    }
+
+    .active_user {
+        background-color: aliceblue;
+        font-weight: bold;
+    }
+
+    .msg_right {
+        background: #8F8EE8;
+        color: white;
+        margin-left: auto;
+    }
+
+    .msg_left {
+        background: #E9EAFD;
+        color: #544f4f;
+    }
+
+    .message {
+        max-width: 75%;
+        padding: 5px 10px;
+        width: fit-content;
+        border-radius: 4px;
+        white-space: break-spaces;
+    }
+
+    .timestamp {
+        font-size: 12px;
+        margin-bottom: 0px;
+        text-align: right;
+    }
+</style>
+
+<body>
+    <div class="container w-75 d-flex justify-content-center align-items-center" style="height: 100vh !important">
+        <div class="row w-100 rounded border border-1 border-dark" style="height: 600px;">
+            <div class="col-sm-4 border-end border-dark p-0">
+                <div class="active_user select_user p-2 border-bottom border-dark">
+                    <span class="username">Akash</span>
+                </div>
+                <div class="select_user p-2 border-bottom border-dark">
+                    <span class="username">Gyanu</span>
+                </div>
+            </div>
+            <div class="col-sm-8 p-0 d-flex flex-column" style="justify-content: space-between;">
+                <div class="name_area p-2 border-bottom border-1 border-secondary" style="height: 40px;">
+                    <span class="to_name">Akash</span>
+                </div>
+                <div class="msg_area p-2" style="height: 500px; overflow-y: auto;">
+
+                </div>
+                <div class="send_msg_area p-2 border-top border-1 border-secondary"
+                    style="display: inline-flex; height: 60px;">
+                    <textarea id="msg" class="form-control" rows="1" style="margin-right: 8px;"></textarea>
+                    <button id="send" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="text" id="from_name" class="form-control">
+</body>
+
+</html>
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+    crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"
+    integrity="sha512-mHO4BJ0ELk7Pb1AzhTi3zvUeRgq3RXVOu9tTRfnA6qOxGK4pG2u57DJYolI4KrEnnLTcH9/J5wNOozRTDaybXg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+
+<script>
+    // const socket = io("https://chat-app-using-mern-stack.herokuapp.com/");
+    const socket = io("http://localhost:5001");
+    console.log(socket);
+    socket.off("room-messages").on("room-messages", (roomMessages) => {
+        console.log(roomMessages);
+    });
+    socket.on("test-msg", (response) => {
+        console.log(response);
+        var msg = response.msg;
+        var time = response.time;
+        var from_name = socket.id;
+        var class_name = response.from == from_name ? "msg_right" : "msg_left";
+        var msg_html = `<div class='message ${class_name} mt-2'><span>${msg}</span><p class='timestamp'>${time}</p></div>`;
+        $('.msg_area').append(msg_html);
+        scroll_to_bottom()
+    });
+
+    function scroll_to_bottom(){
+        $(".msg_area").animate({ scrollTop: $(document).height() }, 100);
+    }
+
+    $("body").on('keyup', '#msg', function(e){
+        if (e.keyCode == 13 && !e.shiftKey) {
+            send_message();
+            return false;
+        }
+    })
+
+    $("#send").click(function () {
+        send_message();
+    })
+
+    function send_message(){
+        var msg = $('#msg').val().trim();
+        if(msg != undefined && msg != ''){
+            var to = $(".to_name").text();
+            var from_name = socket.id;
+            var time = moment(new Date()).format('LT');
+            socket.emit('test-send', msg, to, from_name, time);
+            $('#msg').val('');
+        }else{
+            alert("Message field cannot be empty!!");
+        }
+    }
+
+
+
+
+    $('body').on('click', '.select_user', function () {
+        var name = $(this).find('span.username').text()
+        $(".to_name").text(name);
+        $('.select_user').each(function () {
+            $(this).removeClass('active_user');
+        })
+        $(this).addClass('active_user');
+    })
+
+    $(function(){
+        var from_name = socket;
+        if(from_name == '' || from_name == undefined){
+            while (true) {
+                var from_name = prompt("Please enter your name");
+                from_name = from_name.trim();
+                if(from_name){
+                    $("#from_name").val(from_name);
+                    alert("Hello " + from_name + "!!")
+                    break;
+                }
+            }
+        }
+    })
+
+    $("#from_name").val(from_name);
+</script>
+
+
